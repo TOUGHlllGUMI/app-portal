@@ -1,0 +1,543 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マインスイーパー</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #0B1120;
+  color: #f1f5f9;
+  font-family: "Yu Gothic", "Meiryo", sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app {
+  width: min(100%, 900px);
+  height: 100%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+header {
+  text-align: center;
+  flex-shrink: 0;
+}
+
+h1 {
+  margin: 3px 0;
+  font-size: clamp(20px, 4vw, 28px);
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+select, button {
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+  border-radius: 9px;
+  padding: 9px 13px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button:hover, select:hover {
+  background: #334155;
+}
+
+button.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+button.primary:hover {
+  background: #1d4ed8;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.stat {
+  background: #151f33;
+  border: 1px solid #25334c;
+  border-radius: 10px;
+  padding: 7px 15px;
+  min-width: 85px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.stat-value {
+  display: block;
+  font-size: 19px;
+  font-weight: bold;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.message {
+  text-align: center;
+  color: #93c5fd;
+  font-size: 13px;
+  min-height: 18px;
+  flex-shrink: 0;
+}
+
+.board-area {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.board {
+  display: grid;
+  gap: 2px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.cell {
+  border: 0;
+  border-radius: 4px;
+  background: #263750;
+  color: white;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1;
+  font-size: var(--font-size, 15px);
+}
+
+.cell:hover:not(.opened) {
+  background: #3b5272;
+}
+
+.cell.opened {
+  background: #dbe4ef;
+  color: #172033;
+  cursor: default;
+}
+
+.cell.flagged {
+  background: #334d70;
+}
+
+.cell.mine {
+  background: #dc2626;
+}
+
+.cell.wrong {
+  background: #7f1d1d;
+}
+
+.cell.n1 { color: #2563eb; }
+.cell.n2 { color: #15803d; }
+.cell.n3 { color: #dc2626; }
+.cell.n4 { color: #7c3aed; }
+.cell.n5 { color: #b45309; }
+.cell.n6 { color: #0891b2; }
+.cell.n7 { color: #111827; }
+.cell.n8 { color: #64748b; }
+
+.help {
+  text-align: center;
+  color: #64748b;
+  font-size: 10px;
+  padding-bottom: 2px;
+  flex-shrink: 0;
+}
+
+@media (max-height: 550px) {
+  .app {
+    gap: 5px;
+    padding: 5px;
+  }
+
+  h1 {
+    font-size: 19px;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .stat {
+    padding: 3px 10px;
+  }
+
+  .stat-value {
+    font-size: 15px;
+  }
+
+  select, button {
+    padding: 6px 9px;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <header>
+    <h1>💣 マインスイーパー</h1>
+    <div class="subtitle">地雷を避けて、すべてのマスを開こう！</div>
+  </header>
+
+  <div class="controls">
+    <select id="difficulty">
+      <option value="9">初級　9×9</option>
+      <option value="12">中級　12×12</option>
+      <option value="16">上級　16×16</option>
+    </select>
+
+    <button class="primary" id="restart">↻ やり直す</button>
+    <button id="flagMode">🚩 旗モード：OFF</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-label">残り地雷</span>
+      <span class="stat-value" id="mineCount">10</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">経過時間</span>
+      <span class="stat-value" id="timer">000</span>
+    </div>
+  </div>
+
+  <div class="message" id="message">マスを選んでスタート！</div>
+
+  <div class="board-area" id="boardArea">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="help">
+    タップ：マスを開く　／　旗モード：地雷に旗を置く　／　PC：右クリックでも旗を置けます
+  </div>
+
+</div>
+
+<script>
+const board = document.getElementById("board");
+const boardArea = document.getElementById("boardArea");
+const difficulty = document.getElementById("difficulty");
+const mineCount = document.getElementById("mineCount");
+const timerDisplay = document.getElementById("timer");
+const message = document.getElementById("message");
+const restartButton = document.getElementById("restart");
+const flagButton = document.getElementById("flagMode");
+
+let size = 9;
+let mines = 10;
+let cells = [];
+let started = false;
+let ended = false;
+let flagMode = false;
+let flags = 0;
+let seconds = 0;
+let timer = null;
+let cellSize = 20;
+
+function getMineAmount(n) {
+  if (n === 9) return 10;
+  if (n === 12) return 25;
+  return 40;
+}
+
+function startGame() {
+  clearInterval(timer);
+
+  size = Number(difficulty.value);
+  mines = getMineAmount(size);
+
+  cells = [];
+  started = false;
+  ended = false;
+  flags = 0;
+  seconds = 0;
+  flagMode = false;
+
+  timerDisplay.textContent = "000";
+  mineCount.textContent = mines;
+  message.textContent = "マスを選んでスタート！";
+  flagButton.textContent = "🚩 旗モード：OFF";
+
+  cells = Array.from({ length: size * size }, () => ({
+    mine: false,
+    opened: false,
+    flagged: false,
+    number: 0
+  }));
+
+  render();
+  fitBoard();
+}
+
+function fitBoard() {
+  const areaWidth = boardArea.clientWidth;
+  const areaHeight = boardArea.clientHeight;
+
+  if (!areaWidth || !areaHeight) return;
+
+  const gap = 2;
+  const available = Math.min(
+    (areaWidth - 4) / size,
+    (areaHeight - 4) / size
+  );
+
+  cellSize = Math.max(6, Math.floor(available));
+
+  board.style.gridTemplateColumns =
+    `repeat(${size}, ${cellSize}px)`;
+
+  board.style.gridTemplateRows =
+    `repeat(${size}, ${cellSize}px)`;
+
+  board.style.gap = gap + "px";
+
+  const fontSize = Math.max(7, Math.min(18, cellSize * 0.65));
+  board.style.setProperty("--font-size", fontSize + "px");
+}
+
+function placeMines(firstIndex) {
+  const safe = new Set([firstIndex]);
+
+  const row = Math.floor(firstIndex / size);
+  const col = firstIndex % size;
+
+  for (let y = -1; y <= 1; y++) {
+    for (let x = -1; x <= 1; x++) {
+      const ny = row + y;
+      const nx = col + x;
+
+      if (ny >= 0 && ny < size && nx >= 0 && nx < size) {
+        safe.add(ny * size + nx);
+      }
+    }
+  }
+
+  let placed = 0;
+
+  while (placed < mines) {
+    const index = Math.floor(Math.random() * cells.length);
+
+    if (!safe.has(index) && !cells[index].mine) {
+      cells[index].mine = true;
+      placed++;
+    }
+  }
+
+  for (let i = 0; i < cells.length; i++) {
+    if (cells[i].mine) continue;
+
+    const neighbors = getNeighbors(i);
+    cells[i].number = neighbors.filter(n => cells[n].mine).length;
+  }
+}
+
+function getNeighbors(index) {
+  const row = Math.floor(index / size);
+  const col = index % size;
+  const result = [];
+
+  for (let y = -1; y <= 1; y++) {
+    for (let x = -1; x <= 1; x++) {
+      if (x === 0 && y === 0) continue;
+
+      const ny = row + y;
+      const nx = col + x;
+
+      if (ny >= 0 && ny < size && nx >= 0 && nx < size) {
+        result.push(ny * size + nx);
+      }
+    }
+  }
+
+  return result;
+}
+
+function openCell(index) {
+  if (ended) return;
+
+  const cell = cells[index];
+
+  if (cell.opened || cell.flagged) return;
+
+  if (!started) {
+    started = true;
+    placeMines(index);
+
+    timer = setInterval(() => {
+      seconds++;
+      timerDisplay.textContent = String(seconds).padStart(3, "0");
+    }, 1000);
+  }
+
+  if (cell.mine) {
+    ended = true;
+    clearInterval(timer);
+
+    cells.forEach(c => {
+      if (c.mine) c.opened = true;
+    });
+
+    message.textContent = "💥 ゲームオーバー！";
+    render();
+    return;
+  }
+
+  // 空白マスをまとめて開く
+  const stack = [index];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    const target = cells[current];
+
+    if (target.opened || target.flagged || target.mine) continue;
+
+    target.opened = true;
+
+    if (target.number === 0) {
+      getNeighbors(current).forEach(next => {
+        if (!cells[next].opened && !cells[next].flagged) {
+          stack.push(next);
+        }
+      });
+    }
+  }
+
+  render();
+  checkWin();
+}
+
+function toggleFlag(index) {
+  if (ended || cells[index].opened) return;
+
+  const cell = cells[index];
+
+  if (!cell.flagged && flags >= mines) return;
+
+  cell.flagged = !cell.flagged;
+  flags += cell.flagged ? 1 : -1;
+
+  mineCount.textContent = mines - flags;
+  render();
+}
+
+function checkWin() {
+  const safeCells = cells.filter(c => !c.mine);
+  const openedCells = safeCells.filter(c => c.opened);
+
+  if (openedCells.length === safeCells.length) {
+    ended = true;
+    clearInterval(timer);
+    message.textContent = "🎉 クリア！おめでとう！";
+  }
+}
+
+function render() {
+  board.innerHTML = "";
+
+  cells.forEach((cell, index) => {
+    const button = document.createElement("button");
+    button.className = "cell";
+
+    if (cell.opened) {
+      button.classList.add("opened");
+
+      if (cell.mine) {
+        button.classList.add("mine");
+        button.textContent = "💣";
+      } else if (cell.number > 0) {
+        button.textContent = cell.number;
+        button.classList.add("n" + cell.number);
+      }
+    } else if (cell.flagged) {
+      button.classList.add("flagged");
+      button.textContent = "🚩";
+    }
+
+    button.addEventListener("click", () => {
+      if (flagMode) {
+        toggleFlag(index);
+      } else {
+        openCell(index);
+      }
+    });
+
+    button.addEventListener("contextmenu", event => {
+      event.preventDefault();
+      toggleFlag(index);
+    });
+
+    board.appendChild(button);
+  });
+
+  fitBoard();
+}
+
+flagButton.addEventListener("click", () => {
+  flagMode = !flagMode;
+  flagButton.textContent =
+    flagMode ? "🚩 旗モード：ON" : "🚩 旗モード：OFF";
+});
+
+restartButton.addEventListener("click", startGame);
+difficulty.addEventListener("change", startGame);
+
+window.addEventListener("resize", fitBoard);
+
+if ("ResizeObserver" in window) {
+  new ResizeObserver(fitBoard).observe(boardArea);
+}
+
+startGame();
+</script>
+</body>
+</html>
